@@ -88,7 +88,7 @@ telegram.updates.on('inline_query', async(ctx) => {
         let errors = userTag.length > 10 ? 3 : 0,
             errorReason = ""
 
-            for(let tag of args[0]){
+            for(let tag of userTag){
                 errors = /^(?!_)([a-zA-Z0-9_]{5,32})(?<!_)$/.test(tag) ? 
                 (tag.endsWith("bot") ? 2 : 0) : 1
                 
