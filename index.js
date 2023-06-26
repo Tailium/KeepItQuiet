@@ -51,7 +51,7 @@ telegram.updates.on('inline_query', async(ctx) => {
     }
 
     if(args.length == 1){
-        args[0] = args[0].replaceAll(/^(@|!)/gi, "").toLowerCase().split(",")
+        args[0] = args[0].replaceAll(/(@|!)/gi, "").toLowerCase().split(",")
 
         let errors = args[0].length > 10 ? 3 : 0,
             errorReason = ""
@@ -61,7 +61,7 @@ telegram.updates.on('inline_query', async(ctx) => {
         for(let tag of args[0]){
             errors = /^(?!_)([a-zA-Z0-9_]{5,32})(?<!_)$/.test(tag) ? 
             (tag.endsWith("bot") ? 2 : 0) : 1
-            
+
             if(errors != 0){
                 errorReason = tag
                 message = errorMessages[errors]
@@ -69,7 +69,7 @@ telegram.updates.on('inline_query', async(ctx) => {
             }else{
                 if(!CACHED_TAGS.includes(tag)){
                     const checkForTag = await checkTag(tag)
-
+                    
                     if(checkForTag){
                         CACHED_TAGS.push(tag)
                     }else{
@@ -83,7 +83,7 @@ telegram.updates.on('inline_query', async(ctx) => {
         query = []
     } else if(args.length > 1) {
         let readableAgain = !args[0].startsWith("!")
-        userTag = args[0].replaceAll(/^(@|!)/gi, "").toLowerCase().split(",")
+        userTag = args[0].replaceAll(/(@|!)/gi, "").toLowerCase().split(",")
 
         let errors = userTag.length > 10 ? 3 : 0,
             errorReason = ""
@@ -99,7 +99,7 @@ telegram.updates.on('inline_query', async(ctx) => {
                 }else{
                     if(!CACHED_TAGS.includes(tag)){
                         const checkForTag = await checkTag(tag)
-    
+                        
                         if(checkForTag){
                             CACHED_TAGS.push(tag)
                         }else{
