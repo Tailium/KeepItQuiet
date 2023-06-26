@@ -19,12 +19,18 @@
         "description": "Keep it Quiet!",
         "message_text": "You forgot message! 😢"
     },
+    "moreThan10": {
+        "title": "Max amount of tags - 10.",
+        "description": "Keep it Quiet!",
+        "message_text": "I wanted to secretly say something, but I didn't know about the fact that the maximum number of people you can say something to is 10."
+    },
     "sent": {
         "title": "Great, now click here if you've finished.",
         "description": "Keep it Quiet!",
-        "message_text": "Hey, @{tag}, {sender} sent you message. 🤫"
+        "message_text": "Hey, {tags}, {sender} sent you message. 🤫"
     },
-    "read": "Read",
+    "read": "Read 📖",
+    "delete": "Delete ❌",
     "notForYou": "This message not for you, my little spy. 👀",
     "outdated": "Whoops! Looks like, this message was outdated. 😢",
     "checkPM": "Message was delivered to private messages with @keepitquiet_bot 📩",
@@ -34,5 +40,6 @@
         "title": "If the user tag is entered with the ! (exclamation mark) in beginning, the recipient can read the message only once! 🤔",
         "description": "We didn't know! 😲",
         "message_text": "Can you imagine what I find out? It turns out, if the user tag is entered with the ! (exclamation mark) in beginning, the recipient can read the message only once! 😲"
-    }
+    },
+    "deleted": "Message was deleted. ❌"
 }
