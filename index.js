@@ -20,7 +20,6 @@ telegram.updates.on('message', async (ctx) => {
     if(ctx.text == "/start"){
         return ctx.send(translation.introduction.replace("{firstName}", ctx.from.firstName))
     }
-
 })
 
 telegram.updates.on('inline_query', async(ctx) => {
@@ -30,6 +29,7 @@ telegram.updates.on('inline_query', async(ctx) => {
     let TEMP_ID = md5(Date.now())
     let userTag = []
     let messageTypen = false
+    let readableAgain = true
 
     let query = [
         { 
@@ -81,8 +81,8 @@ telegram.updates.on('inline_query', async(ctx) => {
         }
 
         query = []
-    } else if(args.length > 1) {
-        let readableAgain = !args[0].startsWith("!")
+    } else if(args.length > 1) { // todo: make tagChecking one-functional
+        readableAgain = !args[0].startsWith("!")
         userTag = args[0].replaceAll(/(@|!)/gi, "").toLowerCase().split(",")
 
         let errors = userTag.length > 10 ? 3 : 0,
@@ -91,7 +91,7 @@ telegram.updates.on('inline_query', async(ctx) => {
             for(let tag of userTag){
                 errors = /^(?!_)([a-zA-Z0-9_]{5,32})(?<!_)$/.test(tag) ? 
                 (tag.endsWith("bot") ? 2 : 0) : 1
-                
+
                 if(errors != 0){
                     errorReason = tag
                     message = errorMessages[errors]
@@ -99,11 +99,12 @@ telegram.updates.on('inline_query', async(ctx) => {
                 }else{
                     if(!CACHED_TAGS.includes(tag)){
                         const checkForTag = await checkTag(tag)
-                        
+
                         if(checkForTag){
                             CACHED_TAGS.push(tag)
                         }else{
                             message = errorMessages[1]
+                            errors = 1
                             break;
                         }
                     }
@@ -122,7 +123,7 @@ telegram.updates.on('inline_query', async(ctx) => {
 
                 messages.push(cryptedMessage)
             }
-            message = translation.sent
+            message = readableAgain ? translation.sent : translation.onetimeSent
             TEMP_ID = md5(userTag + ctx.from.id + Date.now()) 
 
             if(MESSAGES_TEMP_HANDLER.find(e => e.sender == ctx.from.id)){
@@ -135,7 +136,7 @@ telegram.updates.on('inline_query', async(ctx) => {
                 messageHash: md5(args),
                 readableAgain: readableAgain,
                 sender: ctx.from.id,
-                wasReaded: false,
+                readers: [],
                 sent: Date.now()
             })
 
@@ -146,26 +147,55 @@ telegram.updates.on('inline_query', async(ctx) => {
         query = []
     }
 
-    let keyboard = InlineKeyboard.keyboard([
-        InlineKeyboard.textButton({
-            text: translation.read,
-            payload: {
-                action: "read",
-                id: TEMP_ID
-            }
-        }),
-        InlineKeyboard.textButton({
-            text: translation.delete,
-            payload: {
-                action: "delete",
-                id: TEMP_ID
-            }
+    const thirdKeyboardLayer = [
+        InlineKeyboard.switchToCurrentChatButton({
+            text: translation.toRecipients,
+            query: (readableAgain ? "" : "!") + userTag.join(",") + " "
         })
-    ])
+    ]
 
-    /*if(userTag.length > 1){
-        keyboard = keyboard.slice(0, -1) // because i'm lazy to do reading
-    }*/
+    if(ctx.from.username){
+        thirdKeyboardLayer.push(InlineKeyboard.switchToCurrentChatButton({
+            text: translation.toSender,
+            query: (readableAgain ? "" : "!") + ctx.from.username + " "
+        }) )
+    }
+
+    let keyboard = InlineKeyboard.keyboard([
+        [
+            InlineKeyboard.textButton({
+                text: translation.read,
+                payload: {
+                    action: "read",
+                    id: TEMP_ID
+                }
+            }),
+            InlineKeyboard.textButton({
+                text: translation.delete,
+                payload: {
+                    action: "delete",
+                    id: TEMP_ID
+                }
+            }),
+            InlineKeyboard.textButton({
+                text: translation.whoReaded,
+                payload: {
+                    action: "check",
+                    id: TEMP_ID
+                }
+            }),
+        ],
+        [
+            InlineKeyboard.textButton({
+                text: translation.answer,
+                payload: {
+                    action: "answer",
+                    id: TEMP_ID
+                }
+            }),
+        ],
+        thirdKeyboardLayer
+    ])
 
     query.push(
         { 
@@ -195,10 +225,18 @@ telegram.updates.on('chosen_inline_result', async(ctx) => {
 
 telegram.updates.on('callback_query', async(ctx) => {
     const translation = translations[Object.keys(translations).includes(ctx.from.languageCode) ? ctx.from.languageCode : "en"]
+
+    if(ctx.queryPayload.action == "answer"){
+        return ctx.answerCallbackQuery({
+            text: translation.answerText,
+            show_alert: false
+        })
+    }
+
     const MESSAGE = localizeJSON(MESSAGES_DB).find(e => e.id == ctx.queryPayload.id)
     if(!MESSAGE)return ctx.answerCallbackQuery({
         text: translation.outdated,
-        show_alert: true
+        show_alert: false
     })
 
     if(Date.now()-MESSAGE.sent > 864e5) {
@@ -206,12 +244,27 @@ telegram.updates.on('callback_query', async(ctx) => {
 
         return ctx.answerCallbackQuery({
             text: translation.outdated,
-            show_alert: true
+            show_alert: false
         })
     }
 
+    if(ctx.queryPayload.action == "check"){
+        if(ctx.from.id == MESSAGE.sender){
+            return ctx.answerCallbackQuery({
+                text: translation.whoRead.replace("{amountOfReaders}", MESSAGE.readers.length).replace("{maxAmountOfReaders}", MESSAGE.messages.length),
+                show_alert: false
+            })
+        }else{
+            return ctx.answerCallbackQuery({
+                text: translation.onlyForSender,
+                show_alert: false
+            })
+        }
+    }
+
     let hashPositive = false,
-        uncryptedMessage = ""
+        uncryptedMessage = "",
+        messageHash = ""
 
     for(let message of MESSAGE.messages){
         const CRYPTO = new RC4(Buffer.from(ctx.from.username.toLowerCase() + MESSAGE.sender))
@@ -223,14 +276,15 @@ telegram.updates.on('callback_query', async(ctx) => {
         uncryptedMessage = uncryptedMessage.toString("utf8")
 
         if(MESSAGE.messageHash == md5(uncryptedMessage)){
+            messageHash = md5(Buffer.from(message).toString("utf8"))
             hashPositive = true
             break;
         }
     }
-    
+
     if(!hashPositive)return ctx.answerCallbackQuery({
         text: translation.notForYou,
-        show_alert: true
+        show_alert: false
     })
 
     if(ctx.queryPayload.action == "delete"){
@@ -238,12 +292,26 @@ telegram.updates.on('callback_query', async(ctx) => {
     
         return ctx.answerCallbackQuery({
             text: translation.deleted,
-            show_alert: true
+            show_alert: false
         })
     }
-
+    
     if(!MESSAGE.readableAgain){
-        MESSAGES_DB = MESSAGES_DB.filter(e => e.id != MESSAGE.id)
+        if(MESSAGE.readers.length == MESSAGE.messages.length){
+            MESSAGES_DB = MESSAGES_DB.filter(e => e.id != MESSAGE.id)
+        }
+
+        if(MESSAGE.readers.includes(messageHash)){
+            return ctx.answerCallbackQuery({
+                text: translation.alreadyWasReaded,
+                show_alert: false
+            })
+        }
+    }
+
+    if(ctx.queryPayload.action == "read" && !MESSAGE.readers.includes(messageHash)){
+        MESSAGES_DB[MESSAGES_DB.indexOf(MESSAGES_DB.find(e => e.id == MESSAGE.id))].readers.push(messageHash)
+        MESSAGE.readers.push(messageHash)
     }
 
     if(uncryptedMessage.length < 200){
@@ -259,19 +327,16 @@ telegram.updates.on('callback_query', async(ctx) => {
         .then(e => {
             return ctx.answerCallbackQuery({
                 text: translation.checkPM,
-                show_alert: true
+                show_alert: false
             })
         }) 
         .catch(e => {
             return ctx.answerCallbackQuery({
                 text: translation.pleaseAllowPM,
-                show_alert: true
+                show_alert: false
             })
         })
-        
     }
-
-    
 })
 
 telegram.updates.startPolling()
@@ -295,4 +360,8 @@ async function checkTag(tag){
     const $ = cheerio.load(result)
 
     return $("div.tgme_page_extra")[0] ? $("div.tgme_page_extra")[0].children[0].data.trim().startsWith("@") : false
+}
+
+async function isTagValid(tag){
+    // in next update
 }

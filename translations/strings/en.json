@@ -29,8 +29,17 @@
         "description": "Keep it Quiet!",
         "message_text": "Hey, {tags}, {sender} sent you message. 🤫"
     },
+    "onetimeSent": {
+        "title": "Great, now click here if you've finished.",
+        "description": "Keep it Quiet!",
+        "message_text": "Hey, {tags}, {sender} sent you one-time message. 🤫"
+    },
     "read": "Read 📖",
     "delete": "Delete ❌",
+    "whoReaded": "Readers 👨‍👩‍👧‍👦",
+    "answer": "Answer ✉",
+    "toSender": "To Sender 📤",
+    "toRecipients": "To Receipients 📥",
     "notForYou": "This message not for you, my little spy. 👀",
     "outdated": "Whoops! Looks like, this message was outdated. 😢",
     "checkPM": "Message was delivered to private messages with @keepitquiet_bot 📩",
@@ -41,5 +50,9 @@
         "description": "We didn't know! 😲",
         "message_text": "Can you imagine what I find out? It turns out, if the user tag is entered with the ! (exclamation mark) in beginning, the recipient can read the message only once! 😲"
     },
-    "deleted": "Message was deleted. ❌"
+    "deleted": "Message was deleted. ❌",
+    "alreadyWasReaded": "You've already read this message. 😥",
+    "whoRead": "{amountOfReaders}/{maxAmountOfReaders} recipients have read this message. ✉",
+    "answerText": "Why do you clicking these buttons? 🤔",
+    "onlyForSender": "This button only for sender! 😥"
 }
