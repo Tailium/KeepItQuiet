@@ -152,15 +152,6 @@ telegram.updates.on('inline_query', async(ctx) => {
                 }
             }),
         ],
-        [
-            InlineKeyboard.textButton({
-                text: translation.answer,
-                payload: {
-                    action: "answer",
-                    id: TEMP_ID
-                }
-            }),
-        ],
         thirdKeyboardLayer
     ])
 
