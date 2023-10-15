@@ -7,11 +7,13 @@ const md5 = require("md5")
 const sha1 = require("js-sha1")
 const RC4 = require("simple-rc4")
 const fetch = require("node-fetch")
-const cheerio = require("cheerio")
+const cheerio = require("cheerio");
+const { randomBytes } = require('crypto');
 
 let MESSAGES_DB = []
 let MESSAGES_TEMP_HANDLER = []
 let CACHED_TAGS = []
+let CACHED_IDS = []
 
 const telegram = Telegram.fromToken(process.env.TOKEN)
 
@@ -44,6 +46,26 @@ telegram.updates.on('inline_query', async(ctx) => {
         }
     ]
 
+    if(!ctx.from.username) {
+        if(!CACHED_IDS.find(e => e.id == ctx.from.id)) {
+            CACHED_IDS.push({
+                id: ctx.from.id,
+                hash: randomBytes(4).toString("hex"),
+                expires: Date.now() + 864e5
+            })
+        }
+
+        query.push({
+            type: "article", 
+            title: translation.getTempId.title, 
+            input_message_content: { 
+                message_text: translation.getTempId.message_text.replaceAll("{temp_id}", getUserHash(ctx.from.id)),
+            }, 
+            id: "GET_A_TAG", 
+            description: translation.getTempId.description
+        })
+    }
+
     const errorMessages = {
         0: translation.onlyOneArg,
         1: translation.incorrectTag,
@@ -59,6 +81,10 @@ telegram.updates.on('inline_query', async(ctx) => {
         message = errorMessages[0]
 
         for(let tag of args[0]){
+            if(tag.startsWith("*") && CACHED_IDS.find(e => e.hash == tag.replace("*", ""))){
+                continue
+            }
+
             errorMessage = await isTagValid(tag)
 
             message = errorMessages[errorMessage]
@@ -72,6 +98,10 @@ telegram.updates.on('inline_query', async(ctx) => {
         let errorMessage = userTag.length > 10 ? 3 : 0
 
         for(let tag of userTag){
+            if(tag.startsWith("*") && CACHED_IDS.find(e => e.hash == tag.replace("*", ""))){
+                continue
+            }
+
             errorMessage = await isTagValid(tag)
 
             message = errorMessages[errorMessage]
@@ -82,12 +112,15 @@ telegram.updates.on('inline_query', async(ctx) => {
         if(errorMessage == 0){
             let messages = []
             for(let user of userTag){
-                const CRYPTO = new RC4(Buffer.from(user.toLowerCase() + ctx.from.id))
+                const CRYPTO = new RC4(Buffer.from(user.toLowerCase().replaceAll("*", "") + ctx.from.id))
                 
                 let cryptedMessage = Buffer.from(args)
                 CRYPTO.update(cryptedMessage)
 
-                messages.push(cryptedMessage)
+                messages.push({
+                    message: cryptedMessage,
+                    isHashed: user.startsWith("*")
+                })
             }
             message = readableAgain ? translation.sent : translation.onetimeSent
             TEMP_ID = md5(userTag + ctx.from.id + Date.now()) 
@@ -114,20 +147,6 @@ telegram.updates.on('inline_query', async(ctx) => {
         query = []
     }
 
-    const thirdKeyboardLayer = [
-        InlineKeyboard.switchToCurrentChatButton({
-            text: translation.toRecipients,
-            query: (readableAgain ? "" : "!") + userTag.join(",") + " "
-        })
-    ]
-
-    if(ctx.from.username){
-        thirdKeyboardLayer.push(InlineKeyboard.switchToCurrentChatButton({
-            text: translation.toSender,
-            query: (readableAgain ? "" : "!") + ctx.from.username + " "
-        }) )
-    }
-
     let keyboard = InlineKeyboard.keyboard([
         [
             InlineKeyboard.textButton({
@@ -152,7 +171,16 @@ telegram.updates.on('inline_query', async(ctx) => {
                 }
             }),
         ],
-        thirdKeyboardLayer
+        [
+            InlineKeyboard.switchToCurrentChatButton({
+                text: translation.toRecipients,
+                query: (readableAgain ? "" : "!") + userTag.join(",") + " "
+            }),
+            InlineKeyboard.switchToCurrentChatButton({
+                text: translation.toSender,
+                query: (readableAgain ? "" : "!") + (ctx.from.username ? ctx.from.username : "*" + getUserHash(ctx.from.id)) + " "
+            })
+        ]
     ])
 
     query.push(
@@ -160,7 +188,7 @@ telegram.updates.on('inline_query', async(ctx) => {
             type: "article", 
             title: message.title, 
             input_message_content: { 
-                message_text: message.message_text.replace("{tags}", userTag.map(e => `@${e}`).join(", ")).replace("{sender}", ctx.from.firstName),
+                message_text: message.message_text.replace("{tags}", userTag.map(e => e.startsWith("*") ? `${getUserNameByHash(e.replace("*", ""), translation.names.firstNames, translation.names.lastNames)} (${e.replace("*", "")})` : `@${e}`).join(", ")).replace("{sender}", ctx.from.firstName),
             }, 
             reply_markup: messageTypen ? keyboard : undefined,
             id: TEMP_ID, 
@@ -192,11 +220,12 @@ telegram.updates.on('callback_query', async(ctx) => {
     }
 
     const MESSAGE = localizeJSON(MESSAGES_DB).find(e => e.id == ctx.queryPayload.id)
+
     if(!MESSAGE)return ctx.answerCallbackQuery({
         text: translation.outdated,
         show_alert: false
     })
-
+    
     if(ctx.queryPayload.action == "check"){
         if(ctx.from.id == MESSAGE.sender){
             return ctx.answerCallbackQuery({
@@ -216,16 +245,20 @@ telegram.updates.on('callback_query', async(ctx) => {
         messageHash = ""
 
     for(let message of MESSAGE.messages){
-        const CRYPTO = new RC4(Buffer.from(ctx.from.username.toLowerCase() + MESSAGE.sender))
+        const firstKeyPart = message.isHashed ? getUserHash(ctx.from.id) : ctx.from.username
 
-        uncryptedMessage = Buffer.from(message)
+        if(!firstKeyPart)continue
+
+        const CRYPTO = new RC4(Buffer.from(firstKeyPart) + MESSAGE.sender)
+
+        uncryptedMessage = Buffer.from(message.message)
 
         CRYPTO.update(uncryptedMessage)
 
         uncryptedMessage = uncryptedMessage.toString("utf8")
 
         if(MESSAGE.messageHash == hash(uncryptedMessage)){
-            messageHash = hash(Buffer.from(message).toString("utf8"))
+            messageHash = hash(Buffer.from(message.message).toString("utf8"))
             hashPositive = true
             break;
         }
@@ -343,8 +376,17 @@ function hash(text){
     return sha1(typeof text != "string" ? String(text) : text)
 }
 
+function getUserHash(id){
+    return CACHED_IDS.find(e => e.id == id).hash
+}
+
+function getUserNameByHash(hash, names, lastnames){
+    return `${names[parseInt(hash, 16) % names.length]} ${lastnames[parseInt(hash, 16) % lastnames.length]}`
+}
+
 function clearBases(){
     // Tags
     CACHED_TAGS = CACHED_TAGS.filter(e => Date.now() < e.expire)
     MESSAGES_DB = MESSAGES_DB.filter(e => Date.now() < e.expires)
+    CACHED_IDS = CACHED_IDS.filter(e => Date.now() < e.expires)
 }
