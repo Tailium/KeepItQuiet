@@ -55,12 +55,22 @@ telegram.updates.on('inline_query', async(ctx) => {
             })
         }
 
+        const tagKeyboard = InlineKeyboard.keyboard([
+            [
+                InlineKeyboard.switchToCurrentChatButton({
+                    text: translation.answer,
+                    query: "*" + getUserHash(ctx.from.id)
+                })
+            ]
+        ])
+
         query.push({
             type: "article", 
             title: translation.getTempId.title, 
             input_message_content: { 
-                message_text: translation.getTempId.message_text.replaceAll("{temp_id}", getUserHash(ctx.from.id)),
+                message_text: translation.getTempId.message_text.replaceAll("{temp_id}", getUserHash(ctx.from.id)).replaceAll("{exp_time}", declTime(getHashExporationTime(ctx.from.id) - Date.now(), translation.times).join(", ")).replaceAll("{secretName}", getUserNameByHash(getUserHash(ctx.from.id), translation.names.firstNames, translation.names.lastNames)),
             }, 
+            reply_markup: tagKeyboard,
             id: "GET_A_TAG", 
             description: translation.getTempId.description
         })
@@ -382,6 +392,49 @@ function getUserHash(id){
 
 function getUserNameByHash(hash, names, lastnames){
     return `${names[parseInt(hash, 16) % names.length]} ${lastnames[parseInt(hash, 16) % lastnames.length]}`
+}
+
+function getHashExporationTime(id){
+    return CACHED_IDS.find(e => e.id == id).expires
+}
+
+function declTime (unix, strings) {
+    let milliseconds = unix % 1000,
+        seconds = Math.floor((unix / 1000) % 60),
+        minutes = Math.floor((unix / 60000) % 60),
+        hours = Math.floor((unix / 3600000) % 24),
+        days = Math.floor(unix / 86400000)
+    
+    let helperTimers = [ days, hours, minutes, seconds, milliseconds ]
+    let output = []
+
+    for (let i = 0; i < strings.length; i++) {
+        output.push(declNumb(helperTimers[i], strings[i]))
+    }
+
+    return output.filter(e => !e.startsWith("0 "))
+}
+
+function declNumb (int, args, includeNumbers = true) {
+    const firstNumber = int
+    let number = Math.abs(int) % 100;
+    let lastNum = number % 10;
+    args = args
+    
+    if (typeof args !== "object") {
+        throw new Error('Provided string must be an array!')
+    }
+
+    let output = args[2]
+    if (number > 10 && number < 20) {
+        output = args[2]
+    } else if (lastNum > 1 && lastNum < 5) {
+        output = args[1]
+    } else if (lastNum === 1) {
+        output = args[0]
+    }
+
+    return includeNumbers ? `${firstNumber} ${output}` : output
 }
 
 function clearBases(){
