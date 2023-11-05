@@ -49,7 +49,7 @@
     "outdated": "Whoops! Looks like, this message was outdated. 😢",
     "checkPM": "Message was delivered to private messages with @keepitquiet_bot 📩",
     "pleaseAllowPM": "Please, allow @keepitquiet_bot send messages to private messages. 😢",
-    "introduction": "Shh! Hi, {firstName}! ✋\nI'm KIQ, or Keep it Quiet. 💜\nI'm trying to send a message to your recipient as quietly as possible! 🤫\n\nTo use me, go into any chat, type @keepitquiet_bot (usertag) (message) and click the pop-up button! 😊\nInteresting fact: If you put an exclamation mark at the beginning of a user tag, the recipient can read the message only once. ☝\n\nSource code: https://github.com/Tailium/KeepItQuiet 👩‍💻\nVersion: v1.3.1 [⚙]\nDevelopers: @tailium 💚",
+    "introduction": "Shh! Hi, {firstName}! ✋\nI'm KIQ, or Keep it Quiet. 💜\nI'm trying to send a message to your recipient as quietly as possible! 🤫\n\nTo use me, go into any chat, type @keepitquiet_bot (usertag) (message) and click the pop-up button! 😊\nInteresting fact: If you put an exclamation mark at the beginning of a user tag, the recipient can read the message only once. ☝\n\nSource code: https://github.com/Tailium/KeepItQuiet 👩‍💻\nVersion: v1.3.2 [⚙]\nDevelopers: @tailium 💚",
     "tip": {
         "title": "If the user tag is entered with the ! (exclamation mark) in beginning, the recipient can read the message only once! 🤔",
         "description": "We didn't know! 😲",

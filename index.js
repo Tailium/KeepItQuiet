@@ -255,7 +255,8 @@ telegram.updates.on('callback_query', async(ctx) => {
         messageHash = ""
 
     for(let message of MESSAGE.messages){
-        const firstKeyPart = message.isHashed ? getUserHash(ctx.from.id) : ctx.from.username
+        const firstKeyPart = message.isHashed ? getUserHash(ctx.from.id) : ctx.from.username.toLowerCase()
+
 
         if(!firstKeyPart)continue
 
