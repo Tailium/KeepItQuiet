@@ -91,6 +91,10 @@ telegram.updates.on('inline_query', async(ctx) => {
         message = errorMessages[0]
 
         for(let tag of args[0]){
+            if(tag.startsWith("#")) {
+                tag = tag.replace("#", "")
+            }
+            
             if(tag.startsWith("*") && CACHED_IDS.find(e => e.hash == tag.replace("*", ""))){
                 continue
             }
@@ -108,6 +112,10 @@ telegram.updates.on('inline_query', async(ctx) => {
         let errorMessage = userTag.length > 10 ? 3 : 0
 
         for(let tag of userTag){
+            if(tag.startsWith("#")) {
+                tag = tag.replace("#", "")
+            }
+
             if(tag.startsWith("*") && CACHED_IDS.find(e => e.hash == tag.replace("*", ""))){
                 continue
             }
@@ -122,6 +130,10 @@ telegram.updates.on('inline_query', async(ctx) => {
         if(errorMessage == 0){
             let messages = []
             for(let user of userTag){
+                if(user.startsWith("#")) {
+                    user = user.replace("#", "")
+                }
+
                 const CRYPTO = new RC4(Buffer.from(user.toLowerCase().replaceAll("*", "") + ctx.from.id))
                 
                 let cryptedMessage = Buffer.from(args)
@@ -157,6 +169,26 @@ telegram.updates.on('inline_query', async(ctx) => {
         query = []
     }
 
+    let sendButtons = []
+
+    if(userTag.length != 0) {
+        let recepients = userTag.filter(e => !e.startsWith("#"))
+
+        sendButtons = [
+            InlineKeyboard.switchToCurrentChatButton({
+                text: translation.toSender,
+                query: (readableAgain ? "" : "!") + (ctx.from.username ? ctx.from.username : "*" + getUserHash(ctx.from.id)) + " "
+            })
+        ]
+
+        if (recepients.length != 0) {
+            sendButtons.unshift(InlineKeyboard.switchToCurrentChatButton({
+                text: translation.toRecipients,
+                query: (readableAgain ? "" : "!") + recepients.join(",") + " "
+            }))
+        }
+    }
+
     let keyboard = InlineKeyboard.keyboard([
         [
             InlineKeyboard.textButton({
@@ -181,16 +213,7 @@ telegram.updates.on('inline_query', async(ctx) => {
                 }
             }),
         ],
-        [
-            InlineKeyboard.switchToCurrentChatButton({
-                text: translation.toRecipients,
-                query: (readableAgain ? "" : "!") + userTag.join(",") + " "
-            }),
-            InlineKeyboard.switchToCurrentChatButton({
-                text: translation.toSender,
-                query: (readableAgain ? "" : "!") + (ctx.from.username ? ctx.from.username : "*" + getUserHash(ctx.from.id)) + " "
-            })
-        ]
+        sendButtons
     ])
 
     query.push(
@@ -198,7 +221,8 @@ telegram.updates.on('inline_query', async(ctx) => {
             type: "article", 
             title: message.title, 
             input_message_content: { 
-                message_text: message.message_text.replace("{tags}", userTag.map(e => e.startsWith("*") ? `${getUserNameByHash(e.replace("*", ""), translation.names.firstNames, translation.names.lastNames)} (${e.replace("*", "")})` : `@${e}`).join(", ")).replace("{sender}", ctx.from.firstName),
+                message_text: message.message_text.replace("{tags}", userTag.map(e => e.startsWith("#") ? translation.hidden : 
+                                                                                    e.startsWith("*") ? `${getUserNameByHash(e.replace("*", ""), translation.names.firstNames, translation.names.lastNames)} (${e.replace("*", "")})` : `@${e}`).join(", ")).replace("{sender}", ctx.from.firstName),
             }, 
             reply_markup: messageTypen ? keyboard : undefined,
             id: TEMP_ID, 
@@ -359,6 +383,10 @@ async function checkTag(tag){
 }
 
 async function isTagValid(tag) {
+    if(tag.startsWith("#")) {
+        tag = tag.replace("#", "")
+    }
+
     let errors = /^(?!_)([a-zA-Z0-9_]{5,32})(?<!_)$/.test(tag) ?
         (tag.endsWith("bot") ? 2 : 0) : 1
 

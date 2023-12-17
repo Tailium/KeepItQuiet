@@ -39,6 +39,11 @@
         "description": "Keep it Quiet!",
         "message_text": "Hey, {tags}, {sender} sent you one-time message. 🤫"
     },
+    "tip": {
+        "title": "Bot usage",
+        "description": "Tips for becoming a pro at bot. 😲",
+        "message_text": "There are some special characters you can use to mark a message with.\n\n\"!\" - One-time message.\nRecipients will only be able to read the message 1 time!\nExample usage:\n@keepitquiet_bot !someuser,somebabe Some legends are told...\n\n\"#\" - Hide recipient\nRecipients marked with this symbol will be hidden!\nExample usage:\n@keepitquiet_bot #someuser,#somebabe Shh...\n\nThere is also the \"*\" symbol, but it is reserved for temporary tags.\nWhat is a temporary tag? It's like @someuser, only inside the bot. And it's only available to users without the telegram tag.\nEvery 24 hours the tag resets, so every 24 hours you have to refresh it to continue receiving messages."
+    },
     "read": "Read 📖",
     "delete": "Delete ❌",
     "whoReaded": "Readers 👨‍👩‍👧‍👦",
@@ -49,17 +54,13 @@
     "outdated": "Whoops! Looks like, this message was outdated. 😢",
     "checkPM": "Message was delivered to private messages with @keepitquiet_bot 📩",
     "pleaseAllowPM": "Please, allow @keepitquiet_bot send messages to private messages. 😢",
-    "introduction": "Shh! Hi, {firstName}! ✋\nI'm KIQ, or Keep it Quiet. 💜\nI'm trying to send a message to your recipient as quietly as possible! 🤫\n\nTo use me, go into any chat, type @keepitquiet_bot (usertag) (message) and click the pop-up button! 😊\nInteresting fact: If you put an exclamation mark at the beginning of a user tag, the recipient can read the message only once. ☝\n\nSource code: https://github.com/Tailium/KeepItQuiet 👩‍💻\nVersion: v1.3.2 [⚙]\nDevelopers: @tailium 💚",
-    "tip": {
-        "title": "If the user tag is entered with the ! (exclamation mark) in beginning, the recipient can read the message only once! 🤔",
-        "description": "We didn't know! 😲",
-        "message_text": "Can you imagine what I find out? It turns out, if the user tag is entered with the ! (exclamation mark) in beginning, the recipient can read the message only once! 😲"
-    },
+    "introduction": "Shh! Hi, {firstName}! ✋\nI'm KIQ, or Keep it Quiet. 💜\nI'm trying to send a message to your recipient as quietly as possible! 🤫\n\nTo use me, go into any chat, type @keepitquiet_bot (usertag) (message) and click the pop-up button! 😊\nInteresting fact: If you put an exclamation mark at the beginning of a user tag, the recipient can read the message only once. ☝\n\nSource code: https://github.com/Tailium/KeepItQuiet 👩‍💻\nVersion: v1.4.0 [⚙]\nDevelopers: @tailium 💚",
     "deleted": "Message was deleted. ❌",
     "alreadyWasReaded": "You've already read this message. 😥",
     "whoRead": "{amountOfReaders}/{maxAmountOfReaders} recipients have read this message. ✉",
     "answerText": "Why do you clicking these buttons? 🤔",
     "onlyForSender": "This button only for sender! 😥",
+    "hidden": "Hidden 👻",
     "times": [
         ["day", "days", "days"],
         ["hour", "hours", "hours"],
